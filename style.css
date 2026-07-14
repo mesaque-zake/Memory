@@ -2,6 +2,11 @@
 /* 1. CONFIGURAÇÕES GERAIS E PERSPECTIVA 3D   */
 /* ========================================== */
 
+/* Força a fonte Plus Jakarta Sans no jogo inteiro */
+body, .font-sans {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
 .perspective-1000 {
     perspective: 1000px;
 }
