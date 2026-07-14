@@ -2,36 +2,22 @@
 /* 1. CONFIGURAÇÕES GERAIS E PERSPECTIVA 3D   */
 /* ========================================== */
 
-/* Define o ponto de fuga da câmera 3D para o tabuleiro */
 .perspective-1000 {
     perspective: 1000px;
 }
 
-/* Garante que os elementos internos mantenham sua profundidade 3D no espaço */
 .transform-style-preserve-3d {
     transform-style: preserve-3d;
     -webkit-transform-style: preserve-3d;
-}
-
-/* Esconde o lado "de trás" do elemento quando ele gira */
-.backface-hidden {
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-}
-
-/* Rotação no eixo Y para o lado da frente (imagem do GitHub) */
-.rotate-y-180 {
-    transform: rotateY(180deg);
 }
 
 /* ========================================== */
 /* 2. COMPORTAMENTO E GRIDS DA MESA DE JOGO   */
 /* ========================================== */
 
-/* Ajustes de Grid Customizados e Responsivos para cada Nível */
 .grid-facil {
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    max-width: 480px; /* Mantém as 16 cartas com proporção excelente */
+    max-width: 480px;
 }
 
 .grid-medio {
@@ -44,103 +30,112 @@
     max-width: 768px;
 }
 
-/* No mobile pequeno, para caber 6 colunas do modo Difícil sem quebrar: */
 @media (max-width: 640px) {
     .grid-dificil {
-        gap: 0.35rem !important; /* Reduz o gap entre cartas no celular */
+        gap: 0.35rem !important;
     }
 }
 
 /* ========================================== */
-/* 3. AS CARTAS DO JOGO (ENGINE DE MOVIMENTO) */
+/* 3. AS CARTAS DO JOGO (BLINDAGEM 3D ANTI-VAZAMENTO) */
 /* ========================================== */
 
-/* Container externo da carta (Define tamanho 1x1 quadrado perfeito) */
 .memory-card {
     aspect-ratio: 1 / 1;
     cursor: pointer;
     position: relative;
     user-select: none;
-    -webkit-tap-highlight-color: transparent; /* Remove pisca azul no mobile */
+    -webkit-tap-highlight-color: transparent;
 }
 
-/* O elemento interno que realmente gira */
 .memory-card-inner {
     width: 100%;
     height: 100%;
     position: relative;
-    transition: transform 0.5s cubic-bezier(0.4, 0.2, 0.2, 1); /* Curva suave estilo Apple */
+    transition: transform 0.5s cubic-bezier(0.4, 0.2, 0.2, 1);
     transform-style: preserve-3d;
     -webkit-transform-style: preserve-3d;
-    border-radius: 0.75rem; /* rounded-xl */
+    border-radius: 0.75rem;
 }
 
-/* QUANDO A CARTA VIRA: O JS adiciona a classe .is-flipped */
+/* QUANDO A CARTA VIRA: Rotação em 180 graus */
 .memory-card.is-flipped .memory-card-inner {
     transform: rotateY(180deg);
 }
 
-/* O Verso da Carta (Ícone Tabler - Virada para Baixo) */
-.memory-card-back {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    background-color: #ffffff;
-    border: 2px solid #e2e8f0; /* slate-200 */
-    border-radius: 0.75rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-    transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-/* Efeito Hover leve nas cartas que ainda não foram viradas */
-.memory-card:not(.is-flipped):not(.is-matched):hover .memory-card-back {
-    border-color: #3b82f6; /* blue-500 */
-    box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.15);
-    transform: translateY(-2px);
-    transition: all 0.2s ease-out;
-}
-
-/* A Frente da Carta (Imagem do GitHub - Virada para Cima) */
+/* SEGURANÇA MÁXIMA 3D: Força invisibilidade da face traseira e controle de Z-Index */
+.memory-card-back,
 .memory-card-front {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
-    background-color: #ffffff;
-    border: 2px solid #93c5fd; /* blue-300 */
+    -webkit-backface-visibility: hidden !important;
+    backface-visibility: hidden !important;
     border-radius: 0.75rem;
+    overflow: hidden; /* Garante que a imagem não vazará nas pontas arredondadas */
+}
+
+/* VERSO DA CARTA (Marca d'água Logo1 cinza, virada para cima inicialmente) */
+.memory-card-back {
+    background-color: #ffffff;
+    border: 2px solid #e2e8f0;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0.5rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    transform: rotateY(0deg);
+    z-index: 2; /* Fica por cima quando não está virada */
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+/* Quando vira, o verso vai para trás no Z-Index */
+.memory-card.is-flipped .memory-card-back {
+    z-index: 1;
+}
+
+.memory-card:not(.is-flipped):not(.is-matched):hover .memory-card-back {
+    border-color: #3b82f6;
+    box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.15);
+    transform: translateY(-2px);
+    transition: all 0.2s ease-out;
+}
+
+/* FRENTE DA CARTA (Imagem revelada em sangria total / edge-to-edge) */
+.memory-card-front {
+    background-color: #ffffff;
+    border: 2px solid #60a5fa; /* blue-400 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    transform: rotateY(180deg); /* Começa escondida em 180 graus no espaço 3D */
+    transform: rotateY(180deg); /* Nasce virada para trás */
+    z-index: 1;
 }
 
-/* Imagens das cartas (ajustadas para não distorcer) */
-.memory-card-front img {
-    max-width: 85%;
-    max-height: 85%;
-    object-fit: contain;
+/* Quando vira, a frente assume a liderança do Z-Index */
+.memory-card.is-flipped .memory-card-front {
+    z-index: 2;
+}
+
+/* A Imagem ocupa 100% da carta cortando apenas as pontas (Edge-to-Edge) */
+.memory-card-front img.card-image-full {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
     pointer-events: none;
+    user-select: none;
 }
 
 /* ========================================== */
-/* 4. ANIMAÇÕES DE ACERTO (VOO PARA O MONTE)  */
+/* 4. ANIMAÇÕES DE ACERTO E VOO PARA O MONTE  */
 /* ========================================== */
 
-/* Quando o jogador acerta o par: brilha dourado antes de voar */
 .memory-card.is-matched .memory-card-front {
-    border-color: #f59e0b; /* amber-500 */
-    background-color: #fffbeb; /* amber-50 */
-    box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+    border-color: #f59e0b;
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.5);
 }
 
-/* Animação: A carta encolhe e "voa" em direção ao canto inferior esquerdo */
 @keyframes flyToDeck {
     0% {
         transform: scale(1) translate(0, 0);
@@ -151,34 +146,49 @@
         opacity: 1;
     }
     100% {
-        transform: scale(0.2) translate(-250vw, 250vh); /* Dispara na direção do monte de cartas */
+        transform: scale(0.2) translate(-250vw, 250vh);
         opacity: 0;
     }
 }
 
-/* O JS aplicará essa classe após o brilho de acerto */
 .memory-card.is-flying {
     animation: flyToDeck 0.7s cubic-bezier(0.5, 0, 0.2, 1) forwards;
     pointer-events: none;
     z-index: 30;
 }
 
-/* Quando a carta termina de voar, ela fica invisível na grade, 
-   MAS MANTÉM O ESPAÇO VAZIO (como concordamos na regra espacial da memória) */
+/* Mantém o buraco espacial vazio na grade ao remover a carta */
 .memory-card.is-hidden-space {
     visibility: hidden;
     pointer-events: none;
 }
 
 /* ========================================== */
-/* 5. EFEITOS DA LOBBY LOGO ANIMADA (2x2)     */
+/* 5. ANIMAÇÕES ESPECIAIS DO LOBBY 2x2        */
 /* ========================================== */
 
-.logo-card-inner {
-    transition: transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1); /* Efeito "elástico" bacana na logo */
+@keyframes mergeLogo1 {
+    0% { transform: translate(0, 0) scale(1); opacity: 1; }
+    50% { transform: translate(0, -50%) scale(1.1); opacity: 0.8; z-index: 20; }
+    100% { transform: translate(0, -100%) scale(0.5); opacity: 0; }
 }
 
-/* Efeito de pulso no Monte de Cartas Conquistadas quando ganha um novo par */
+@keyframes mergeLogo2 {
+    0% { transform: translate(0, 0) scale(1); opacity: 1; }
+    50% { transform: translate(0, -50%) scale(1.1); opacity: 0.8; z-index: 20; }
+    100% { transform: translate(0, -100%) scale(0.5); opacity: 0; }
+}
+
+.animate-merge-1 {
+    animation: mergeLogo1 0.6s ease-in-out forwards;
+    pointer-events: none;
+}
+
+.animate-merge-2 {
+    animation: mergeLogo2 0.6s ease-in-out forwards;
+    pointer-events: none;
+}
+
 @keyframes deckPulse {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.2); border-color: #3b82f6; }
