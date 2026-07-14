@@ -9,9 +9,9 @@ const LEVELS_CONFIG = {
         gridClass: 'grid-facil',
         totalCards: 16,
         pairs: 8,
-        previewTime: 1000, // 1 segundo de espiadinha
+        previewTime: 1000,
         hasPreview: true,
-        timeLimit: null,   // Cronômetro livre (crescente)
+        timeLimit: null,
         images: [
             'saco.png', 'tablet.png', 'luva.png', 'alcool.png', 
             'celular.png', 'pead.png', 'caixa.png', 'carinho.png'
@@ -21,9 +21,9 @@ const LEVELS_CONFIG = {
         gridClass: 'grid-medio',
         totalCards: 30,
         pairs: 15,
-        previewTime: 1000, // 1 segundo de espiadinha
+        previewTime: 1000,
         hasPreview: true,
-        timeLimit: null,   // Cronômetro livre (crescente)
+        timeLimit: null,
         images: [
             'saco.png', 'tablet.png', 'luva.png', 'alcool.png', 
             'celular.png', 'pead.png', 'caixa.png', 'carinho.png',
@@ -35,9 +35,9 @@ const LEVELS_CONFIG = {
         gridClass: 'grid-dificil',
         totalCards: 42,
         pairs: 21,
-        previewTime: 0,    // SEM espiadinha! (Acordo blindado)
+        previewTime: 0,
         hasPreview: false,
-        timeLimit: 120,    // 2 minutos (120 segundos regressivos)
+        timeLimit: 120,
         images: [
             'saco.png', 'tablet.png', 'luva.png', 'alcool.png', 
             'celular.png', 'pead.png', 'caixa.png', 'carinho.png',
@@ -55,12 +55,13 @@ let cardsArray = [];
 let firstCard = null;
 let secondCard = null;
 let hasFlippedCard = false;
-let lockBoard = true; // Começa travado até a intro/espiadinha terminar
+let lockBoard = true;
 let matchedPairs = 0;
 let timerInterval = null;
 let secondsElapsed = 0;
 let isTimerRunning = false;
 let rankingData = { facil: [], medio: [], dificil: [] };
+let lobbyAnimationTimers = [];
 
 // --- 3. INICIALIZAÇÃO DA APLICAÇÃO ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -69,45 +70,87 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
 });
 
-// --- 4. ANIMAÇÃO DA TELA DE BOAS-VINDAS (LOBBY 2x2) ---
+// --- 4. ANIMAÇÃO DO LOBBY (MINI-GAMA DIAGONAL 1-2 / 2-1) ---
 function initLobbyAnimation() {
     const grid = document.getElementById('logo-animation-grid');
     if (!grid) return;
     
+    // Limpa timers anteriores caso o jogador navegue rápido pelo menu
+    lobbyAnimationTimers.forEach(t => clearTimeout(t));
+    lobbyAnimationTimers = [];
+    
     grid.innerHTML = '';
-    const logos = ['logo1.png', 'logo2.png', 'logo1.png', 'logo2.png'];
+    grid.className = 'grid grid-cols-2 gap-2 w-48 h-48 mb-8 relative transition-all duration-500';
+
+    // Matriz Diagonal exata que concordamos: 1, 2 no topo / 2, 1 na base
+    const logos = ['logo1.png', 'logo2.png', 'logo2.png', 'logo1.png'];
+    const cardElements = [];
     
     logos.forEach((logo, index) => {
         const card = document.createElement('div');
-        card.className = 'memory-card w-full h-full';
+        card.className = 'memory-card w-full h-full pointer-events-none';
         card.innerHTML = `
-            <div class="memory-card-inner logo-card-inner">
-                <div class="memory-card-back bg-white border border-slate-200 shadow-sm rounded-xl flex items-center justify-center">
-                    <i class="ti ti-question-mark text-slate-300 text-2xl font-bold"></i>
+            <div class="memory-card-inner">
+                <!-- VERSO: Marca d'água cinza e quase transparente da logo1 -->
+                <div class="memory-card-back">
+                    <img src="logo1.png" alt="watermark" class="w-3/5 h-3/5 object-contain opacity-20 grayscale" onerror="this.outerHTML='<i class=\\'ti ti-brand-github text-slate-300 text-2xl\\'></i>'">
                 </div>
-                <div class="memory-card-front bg-white border-2 border-blue-400 shadow-md rounded-xl p-2 flex items-center justify-center">
-                    <!-- Tenta carregar a logo, se der erro mostra um ícone elegante sem sujar o F12 -->
+                <!-- FRENTE: A logo correspondente da matriz -->
+                <div class="memory-card-front p-2">
                     <img src="${logo}" alt="Logo" class="max-w-full max-h-full object-contain" onerror="this.outerHTML='<i class=\\'ti ti-brand-github text-blue-600 text-3xl\\'></i>'">
                 </div>
             </div>
         `;
         grid.appendChild(card);
-
-        // Animação coreografada das 4 cartas virando no lobby
-        setTimeout(() => {
-            card.classList.add('is-flipped');
-        }, 300 + (index * 200));
+        cardElements.push(card);
     });
+
+    // COREOGRAFIA DO MINI-JOGO DE BOAS-VINDAS:
+    // Passo 1: Vira a carta 0 e a carta 3 (Os pares de Logo 1)
+    lobbyAnimationTimers.push(setTimeout(() => {
+        if (!grid.contains(cardElements[0])) return;
+        cardElements[0].classList.add('is-flipped');
+        cardElements[3].classList.add('is-flipped');
+    }, 400));
+
+    // Passo 2: Eles brilham dourado (deu par!) e a carta de baixo se funde na de cima
+    lobbyAnimationTimers.push(setTimeout(() => {
+        if (!grid.contains(cardElements[0])) return;
+        cardElements[0].classList.add('is-matched');
+        cardElements[3].classList.add('is-matched', 'animate-merge-1');
+    }, 1100));
+
+    // Passo 3: Vira a carta 1 e a carta 2 (Os pares de Logo 2)
+    lobbyAnimationTimers.push(setTimeout(() => {
+        if (!grid.contains(cardElements[1])) return;
+        cardElements[1].classList.add('is-flipped');
+        cardElements[2].classList.add('is-flipped');
+    }, 1700));
+
+    // Passo 4: Brilham dourado e a Logo 2 de baixo se funde na Logo 2 de cima
+    lobbyAnimationTimers.push(setTimeout(() => {
+        if (!grid.contains(cardElements[1])) return;
+        cardElements[1].classList.add('is-matched');
+        cardElements[2].classList.add('is-matched', 'animate-merge-2');
+    }, 2400));
+
+    // Passo 5: As duas cartas de baixo desaparecem do DOM, deixando [ Logo 1 ] [ Logo 2 ] perfeitas no topo!
+    lobbyAnimationTimers.push(setTimeout(() => {
+        if (!grid.contains(cardElements[2])) return;
+        cardElements[2].style.visibility = 'hidden';
+        cardElements[3].style.visibility = 'hidden';
+        // Encolhe a grade suavemente para abraçar as duas logos que restaram lado a lado
+        grid.classList.remove('h-48');
+        grid.classList.add('h-24');
+    }, 3000));
 }
 
 // --- 5. GESTÃO DE EVENTOS (CLIQUE NOS BOTÕES) ---
 function setupEventListeners() {
-    // Navegação entre telas
     document.getElementById('btn-show-difficulty')?.addEventListener('click', () => switchScreen('difficulty-screen'));
     document.getElementById('btn-back-lobby')?.addEventListener('click', () => switchScreen('lobby-screen'));
     document.getElementById('btn-back-from-game')?.addEventListener('click', returnToMenu);
     
-    // Botões do Modal de Fim de Jogo
     document.getElementById('btn-endgame-menu')?.addEventListener('click', () => {
         closeModal('endgame-modal');
         returnToMenu();
@@ -121,12 +164,10 @@ function setupEventListeners() {
         openRankingModal(currentLevel);
     });
 
-    // Ações Rápidas no Topo do Jogo
     document.getElementById('btn-restart-game')?.addEventListener('click', () => startNewGame(currentLevel));
     document.getElementById('btn-show-ranking-game')?.addEventListener('click', () => openRankingModal(currentLevel));
     document.getElementById('btn-show-ranking-lobby')?.addEventListener('click', () => openRankingModal('facil'));
 
-    // Botões de Dificuldade
     document.querySelectorAll('.difficulty-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const level = e.currentTarget.getAttribute('data-level');
@@ -134,7 +175,6 @@ function setupEventListeners() {
         });
     });
 
-    // Abas do Modal de Ranking
     document.querySelectorAll('.rank-tab-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const tabLevel = e.currentTarget.getAttribute('data-rank-tab');
@@ -143,10 +183,7 @@ function setupEventListeners() {
         });
     });
 
-    // Fechar Ranking
     document.getElementById('btn-close-ranking')?.addEventListener('click', () => closeModal('ranking-modal'));
-
-    // Salvar Recorde
     document.getElementById('btn-save-score')?.addEventListener('click', handleSaveScore);
 }
 
@@ -158,7 +195,6 @@ function switchScreen(screenId) {
         if (!el) return;
         if (id === screenId) {
             el.classList.remove('hidden');
-            // Pequeno delay para acionar a transição suave do Tailwind
             setTimeout(() => el.classList.remove('opacity-0'), 10);
         } else {
             el.classList.add('hidden', 'opacity-0');
@@ -169,7 +205,7 @@ function switchScreen(screenId) {
 function returnToMenu() {
     stopTimer();
     switchScreen('lobby-screen');
-    initLobbyAnimation(); // Reinicia o charme do Lobby 2x2
+    initLobbyAnimation(); // Reinicia o espetáculo da fusão do Lobby
 }
 
 // --- 7. INICIALIZAÇÃO DE UMA NOVA PARTIDA ---
@@ -177,7 +213,6 @@ function startNewGame(level) {
     currentLevel = level;
     const config = LEVELS_CONFIG[level];
     
-    // Atualiza a UI da Tela de Jogo
     const badge = document.getElementById('game-level-badge');
     if (badge) {
         badge.textContent = level.toUpperCase();
@@ -191,13 +226,11 @@ function startNewGame(level) {
     document.getElementById('total-pairs-counter').textContent = config.pairs;
     document.getElementById('matched-counter').textContent = '0';
     
-    // Esconde o deck de cartas conquistadas no início
     const deckContainer = document.getElementById('collected-deck-container');
     if (deckContainer) {
         deckContainer.classList.add('opacity-0', 'translate-y-10');
     }
 
-    // Reseta variáveis globais da partida
     stopTimer();
     secondsElapsed = config.timeLimit ? config.timeLimit : 0;
     updateTimerDisplay();
@@ -205,14 +238,13 @@ function startNewGame(level) {
     hasFlippedCard = false;
     firstCard = null;
     secondCard = null;
-    lockBoard = true; // Trava o clique até as cartas serem distribuídas
+    lockBoard = true;
 
-    // Monta o Tabuleiro
     setupBoardGrid(config);
     switchScreen('game-screen');
 }
 
-// --- 8. GERADOR DE TABULEIRO E ALGORITMO DE EMBARALHAMENTO ---
+// --- 8. GERADOR DE TABULEIRO E EMBARALHAMENTO ---
 function setupBoardGrid(config) {
     const board = document.getElementById('board-grid');
     if (!board) return;
@@ -220,16 +252,14 @@ function setupBoardGrid(config) {
     board.innerHTML = '';
     board.className = `grid gap-2 sm:gap-3 w-full flex-1 place-content-center perspective-1000 ${config.gridClass}`;
 
-    // Duplica as imagens para formar os pares
     const pairsArray = [...config.images, ...config.images];
     
-    // Algoritmo de Fisher-Yates (Embaralhamento científico e sem padrões)
+    // Algoritmo de Fisher-Yates
     for (let i = pairsArray.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [pairsArray[i], pairsArray[j]] = [pairsArray[j], pairsArray[i]];
     }
 
-    // Cria as cartas no DOM
     pairsArray.forEach((imgName, index) => {
         const card = document.createElement('div');
         card.className = 'memory-card w-full h-full';
@@ -238,12 +268,13 @@ function setupBoardGrid(config) {
 
         card.innerHTML = `
             <div class="memory-card-inner">
+                <!-- VERSO: A logo1 em cinza marca d'água de 20% opacidade -->
                 <div class="memory-card-back">
-                    <i class="ti ti-brand-github text-slate-300 text-xl sm:text-2xl font-bold"></i>
+                    <img src="logo1.png" alt="watermark" class="w-3/5 h-3/5 object-contain opacity-20 grayscale pointer-events-none select-none" onerror="this.outerHTML='<i class=\\'ti ti-brand-github text-slate-300 text-2xl\\'></i>'">
                 </div>
+                <!-- FRENTE: A imagem ocupando 100% (edge-to-edge / sangria total) -->
                 <div class="memory-card-front">
-                    <!-- Busca na pasta /assets/ criada por você -->
-                    <img src="assets/${imgName}" alt="Carta" onerror="this.outerHTML='<i class=\\'ti ti-photo text-blue-400 text-2xl\\'></i>'">
+                    <img src="assets/${imgName}" alt="Carta" class="card-image-full" onerror="this.outerHTML='<i class=\\'ti ti-photo text-blue-400 text-2xl\\'></i>'">
                 </div>
             </div>
         `;
@@ -252,36 +283,30 @@ function setupBoardGrid(config) {
         board.appendChild(card);
     });
 
-    // Lógica de "Espiadinha" (Apenas Fácil e Médio)
     const allCards = board.querySelectorAll('.memory-card');
     
     if (config.hasPreview) {
-        // Mostra todas as cartas rapidamente
         setTimeout(() => {
             allCards.forEach(c => c.classList.add('is-flipped'));
         }, 300);
 
-        // Vira de volta após 1 segundo e LIBERA o tabuleiro para jogar!
         setTimeout(() => {
             allCards.forEach(c => c.classList.remove('is-flipped'));
             lockBoard = false;
         }, 300 + config.previewTime);
     } else {
-        // Modo Difícil: Libera o clique após 500ms da montagem sem espiadinha!
         setTimeout(() => {
             lockBoard = false;
         }, 500);
     }
 }
 
-// --- 9. MECÂNICA DE VIRAR AS CARTAS E VERIFICAR PARES ---
+// --- 9. MECÂNICA DE VIRAR AS CARTAS ---
 function flipCard(card) {
-    // Travas Anti-Bug blindadas:
     if (lockBoard) return;
-    if (card === firstCard) return; // Impede clique duplo na mesma carta
+    if (card === firstCard) return;
     if (card.classList.contains('is-flipped') || card.classList.contains('is-matched')) return;
 
-    // Inicia o cronômetro EXATAMENTE no primeiro clique bem-sucedido da partida!
     if (!isTimerRunning) {
         startTimer();
     }
@@ -289,13 +314,11 @@ function flipCard(card) {
     card.classList.add('is-flipped');
 
     if (!hasFlippedCard) {
-        // Primeiro clique da rodada
         hasFlippedCard = true;
         firstCard = card;
         return;
     }
 
-    // Segundo clique da rodada
     secondCard = card;
     checkForMatch();
 }
@@ -310,16 +333,14 @@ function checkForMatch() {
     }
 }
 
-// --- 10. CARTAS IGUAIS: ANIMAÇÃO DE VOO PARA O MONTE ---
+// --- 10. CARTAS IGUAIS: VOO PARA O MONTE ---
 function disableMatchedCards() {
-    lockBoard = true; // Trava para evitar cliques durante a animação de voo
+    lockBoard = true;
     matchedPairs++;
     
-    // Atualiza o contador de pares na UI
     const counterEl = document.getElementById('matched-counter');
     if (counterEl) counterEl.textContent = matchedPairs;
 
-    // Mostra o monte de cartas conquistadas no canto da tela
     const deckContainer = document.getElementById('collected-deck-container');
     const deckBox = document.getElementById('collected-deck');
     if (deckContainer) {
@@ -331,34 +352,30 @@ function disableMatchedCards() {
     firstCard.classList.add('is-matched');
     secondCard.classList.add('is-matched');
 
-    // Efeito de voo após 300ms de brilho dourado
     setTimeout(() => {
         firstCard.classList.add('is-flying');
         secondCard.classList.add('is-flying');
 
         setTimeout(() => {
-            // A carta desaparece da visão, MAS SEU BURAKO ESPACIAL É MANTIDO!
             firstCard.classList.add('is-hidden-space');
             secondCard.classList.add('is-hidden-space');
             resetBoard();
 
-            // Verifica se ganhou o jogo!
             if (matchedPairs === LEVELS_CONFIG[currentLevel].pairs) {
                 handleGameWin();
             }
-        }, 650); // Tempo da animação CSS flyToDeck
+        }, 650);
     }, 350);
 }
 
 // --- 11. CARTAS DIFERENTES: ESCONDE NOVAMENTE ---
 function unflipCards() {
-    lockBoard = true; // Impede o "Dedo Rápido" de clicar na 3ª carta
-    
+    lockBoard = true;
     setTimeout(() => {
         firstCard.classList.remove('is-flipped');
         secondCard.classList.remove('is-flipped');
         resetBoard();
-    }, 1000); // 1 segundo exato para memorizar o erro
+    }, 1000);
 }
 
 function resetBoard() {
@@ -366,7 +383,7 @@ function resetBoard() {
     [firstCard, secondCard] = [null, null];
 }
 
-// --- 12. GESTÃO DO CRONÔMETRO (PROGRESSIVO / REGRESSIVO) ---
+// --- 12. GESTÃO DO CRONÔMETRO ---
 function startTimer() {
     stopTimer();
     isTimerRunning = true;
@@ -374,7 +391,6 @@ function startTimer() {
 
     timerInterval = setInterval(() => {
         if (config.timeLimit) {
-            // Modo Difícil (Regressivo)
             secondsElapsed--;
             updateTimerDisplay();
 
@@ -382,7 +398,6 @@ function startTimer() {
                 handleGameOver();
             }
         } else {
-            // Modo Fácil e Médio (Progressivo)
             secondsElapsed++;
             updateTimerDisplay();
         }
@@ -406,7 +421,6 @@ function updateTimerDisplay() {
     
     display.querySelector('span').textContent = `${mins}:${secs}`;
 
-    // Efeito de alerta vermelho quando restam 15 segundos no Modo Difícil
     if (LEVELS_CONFIG[currentLevel].timeLimit && secondsElapsed <= 15) {
         display.classList.add('bg-red-100', 'text-red-600', 'border-red-300', 'animate-pulse');
     } else {
@@ -414,11 +428,9 @@ function updateTimerDisplay() {
     }
 }
 
-// --- 13. FIM DE JOGO: VITÓRIA & GAME OVER ---
+// --- 13. FIM DE JOGO ---
 function handleGameWin() {
     stopTimer();
-    
-    // Tempo final consumido para o cálculo de ranking
     const config = LEVELS_CONFIG[currentLevel];
     const finalTimeSeconds = config.timeLimit ? (config.timeLimit - secondsElapsed) : secondsElapsed;
     
@@ -426,13 +438,11 @@ function handleGameWin() {
     const secs = String(finalTimeSeconds % 60).padStart(2, '0');
     const formattedTime = `${mins}:${secs}`;
 
-    // Monta o Modal de Vitória
     document.getElementById('endgame-icon').className = 'ti ti-trophy text-5xl text-amber-500';
     document.getElementById('endgame-icon-container').className = 'w-24 h-24 rounded-full mx-auto mb-4 flex items-center justify-center bg-amber-100 shadow-inner';
     document.getElementById('endgame-title').textContent = '🎉 Incrível, Você Venceu!';
     document.getElementById('endgame-message').textContent = `Você memorizou todos os ${config.pairs} pares em tempo recorde de ${formattedTime}!`;
 
-    // Verifica se entrou no Top 10
     const isTop10 = checkIfTop10(currentLevel, finalTimeSeconds);
     const recordSection = document.getElementById('record-section');
     
@@ -449,9 +459,8 @@ function handleGameWin() {
 
 function handleGameOver() {
     stopTimer();
-    lockBoard = true; // Trava o tabuleiro imediatamente
+    lockBoard = true;
 
-    // Monta o Modal de Derrota (Exclusivo Modo Difícil)
     document.getElementById('endgame-icon').className = 'ti ti-alarm-off text-5xl text-red-500';
     document.getElementById('endgame-icon-container').className = 'w-24 h-24 rounded-full mx-auto mb-4 flex items-center justify-center bg-red-100 shadow-inner';
     document.getElementById('endgame-title').textContent = '💥 O Tempo Acabou!';
@@ -462,32 +471,28 @@ function handleGameOver() {
     openModal('endgame-modal');
 }
 
-// --- 14. SISTEMA DE RANKING GLOBAL (COM FALLBACK EM LOCALSTORAGE) ---
+// --- 14. RANKING GLOBAL E LOCALSTORAGE ---
 async function loadRankingData() {
     try {
-        // Tenta buscar do arquivo online no GitHub Pages
         const response = await fetch('ranking.json');
         if (response.ok) {
             const data = await response.json();
             rankingData = { ...rankingData, ...data };
         }
     } catch (e) {
-        // Fallback silencioso sem sujar F12 se estiver jogando local
-        console.info('Executando no modo offline/local. Carregando rankings do navegador.');
+        console.info('Executando no modo offline/local.');
     }
 
-    // Mescla com recordes salvos no LocalStorage para o próprio usuário não perder suas conquistas
     const localRanking = localStorage.getItem('memory_game_ranking');
     if (localRanking) {
         try {
             const parsed = JSON.parse(localRanking);
-            // Combina sem duplicar
             ['facil', 'medio', 'dificil'].forEach(lvl => {
                 rankingData[lvl] = [...(rankingData[lvl] || []), ...(parsed[lvl] || [])]
                     .sort((a, b) => a.tempoSegundos - b.tempoSegundos)
                     .slice(0, 10);
             });
-        } catch (e) { /* Proteção contra JSON corrompido no navegador */ }
+        } catch (e) {}
     }
 }
 
@@ -512,15 +517,12 @@ function handleSaveScore() {
         data: new Date().toLocaleDateString('pt-BR')
     };
 
-    // Insere no ranking da categoria atual e ordena do menor para o maior tempo
     rankingData[currentLevel].push(newRecord);
     rankingData[currentLevel].sort((a, b) => a.tempoSegundos - b.tempoSegundos);
-    rankingData[currentLevel] = rankingData[currentLevel].slice(0, 10); // Mantém apenas o Top 10
+    rankingData[currentLevel] = rankingData[currentLevel].slice(0, 10);
 
-    // Salva no LocalStorage permanentemente no navegador do usuário
     localStorage.setItem('memory_game_ranking', JSON.stringify(rankingData));
 
-    // Desativa o botão de salvar para evitar duplo registro
     const btnSave = document.getElementById('btn-save-score');
     if (btnSave) {
         btnSave.textContent = 'Salvo! ✓';
@@ -528,7 +530,6 @@ function handleSaveScore() {
         btnSave.className = 'bg-green-600 text-white font-bold px-4 py-2 rounded-xl text-sm opacity-80 cursor-not-allowed';
     }
 
-    // Fecha modal de vitória e abre o Ranking celebrando o jogador!
     setTimeout(() => {
         closeModal('endgame-modal');
         openRankingModal(currentLevel);
@@ -543,7 +544,6 @@ function renderRankingList(level) {
     listContainer.innerHTML = '';
 
     if (list.length === 0) {
-        // Nossa regra de OURO: Sem dados fictícios!
         listContainer.innerHTML = `
             <div class="text-center py-10 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
                 <i class="ti ti-trophy-off text-4xl text-slate-300 mb-2 block"></i>
