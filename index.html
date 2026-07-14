@@ -7,6 +7,7 @@
     
     <!-- Tailwind CSS (CDN com suporte a classes customizadas via style.css) -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" type="image/png" href="logo1.png" />
     
     <!-- Tabler Icons (Webfont oficial e super leve) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
@@ -253,16 +254,13 @@
     </div>
 
     <!-- ========================================== -->
-    <!-- RODAPÉ ASSINADO (SEU CÓDIGO EXATO + PILL)  -->
+    <!-- RODAPÉ ASSINADO (SEM PÍLULA / FLUTUANTE)   -->
     <!-- ========================================== -->
-    <!-- Nota: Adicionei uma pill sufocada em bg-slate-900/80 no #signature para que o texto branco e slate-300 tenham contraste perfeito e leitura impecável sobre o nosso fundo cinza gelo! -->
-    <div id="footer" class="absolute bottom-6 left-0 right-0 flex flex-col items-center pointer-events-none">
-        <div id="signature" class="w-full text-center">
-            <div class="inline-block bg-slate-900/80 px-5 py-1.5 rounded-full backdrop-blur-sm shadow-md pointer-events-auto">
-                <p class="text-xs md:text-sm font-medium text-slate-300">
-                    Powered with <span class="text-[#e80523] text-sm md:text-base leading-none drop-shadow-md">&#10084;</span> by <strong class="text-white drop-shadow-md">Mesaque</strong>
-                </p>
-            </div>
+    <div id="footer" class="absolute bottom-6 left-0 right-0 flex flex-col items-center pointer-events-none z-20">
+        <div id="signature" class="w-full text-center pointer-events-auto">
+            <p class="text-xs md:text-sm font-medium text-slate-400">
+                Powered with <span class="text-[#e80523] text-sm md:text-base leading-none drop-shadow-sm">&#10084;</span> by <strong class="text-slate-700 font-bold drop-shadow-sm">Mesaque</strong>
+            </p>
         </div>
     </div>
 
