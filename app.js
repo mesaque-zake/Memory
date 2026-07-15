@@ -487,23 +487,32 @@ function handleGameWin() {
     const secs = String(finalTimeSeconds % 60).padStart(2, '0');
     const formattedTime = `${mins}:${secs}`;
 
-    // DISPARA A CHUVA DE CONFETES (COMBO: RESPIRO DE 500MS + MODO ECONÔMICO MOBILE)
+    const isMobile = window.innerWidth < 640; // Detecta se é celular
+
+    // 1. REMOVE O BLUR NO CELULAR E ESCURECE O FUNDO (Mata o clarão branco da GPU na hora!)
+    const endgameModal = document.getElementById('endgame-modal');
+    if (isMobile && endgameModal) {
+        endgameModal.classList.remove('backdrop-blur-md', 'backdrop-blur-sm');
+        endgameModal.classList.add('bg-slate-900/95'); // Fundo sólido escurinho para compensar sem pesar
+    }
+
+    // 2. DISPARA A CHUVA DE CONFETES (1 SEGUNDO DE DELAY NO MOBILE + 80 CONFETES)
     if (typeof confetti === 'function') {
+        const delay = isMobile ? 1000 : 500; // 1 seg no celular, 0.5 seg no PC
+        
         setTimeout(() => {
-            const isMobile = window.innerWidth < 640; // Detecta se é tela de celular
-            
             if (isMobile) {
-                // Modo Econômico (Mobile): 80 partículas leves e centralizadas, zero clarão!
-                confetti({ particleCount: 100, spread: 60, origin: { y: 0.6 } });
+                // Modo Celular: 80 confetes após 1 seg exato, com a tela já aberta e leve!
+                confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
             } else {
-                // Modo Festa (Desktop): 200 partículas em 3 ondas
+                // Modo Desktop: Show completo em 3 ondas
                 confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
                 setTimeout(() => {
                     confetti({ particleCount: 50, angle: 60, spread: 55, origin: { x: 0 } });
                     confetti({ particleCount: 50, angle: 120, spread: 55, origin: { x: 1 } });
                 }, 400);
             }
-        }, 500); // 500ms de respiro para a GPU renderizar o vidro embaçado primeiro
+        }, delay);
     }
 
     document.getElementById('endgame-icon').className = 'ti ti-trophy text-5xl text-amber-500';
