@@ -487,13 +487,23 @@ function handleGameWin() {
     const secs = String(finalTimeSeconds % 60).padStart(2, '0');
     const formattedTime = `${mins}:${secs}`;
 
-    // DISPARA A CHUVA DE CONFETES COM A BIBLIOTECA CDN
+    // DISPARA A CHUVA DE CONFETES (COMBO: RESPIRO DE 500MS + MODO ECONÔMICO MOBILE)
     if (typeof confetti === 'function') {
-        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
         setTimeout(() => {
-            confetti({ particleCount: 50, angle: 60, spread: 55, origin: { x: 0 } });
-            confetti({ particleCount: 50, angle: 120, spread: 55, origin: { x: 1 } });
-        }, 400);
+            const isMobile = window.innerWidth < 640; // Detecta se é tela de celular
+            
+            if (isMobile) {
+                // Modo Econômico (Mobile): 80 partículas leves e centralizadas, zero clarão!
+                confetti({ particleCount: 100, spread: 60, origin: { y: 0.6 } });
+            } else {
+                // Modo Festa (Desktop): 200 partículas em 3 ondas
+                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+                setTimeout(() => {
+                    confetti({ particleCount: 50, angle: 60, spread: 55, origin: { x: 0 } });
+                    confetti({ particleCount: 50, angle: 120, spread: 55, origin: { x: 1 } });
+                }, 400);
+            }
+        }, 500); // 500ms de respiro para a GPU renderizar o vidro embaçado primeiro
     }
 
     document.getElementById('endgame-icon').className = 'ti ti-trophy text-5xl text-amber-500';
