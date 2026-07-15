@@ -1,10 +1,13 @@
 /* ========================================== */
-/* 1. CONFIGURAÇÕES GERAIS E PERSPECTIVA 3D   */
+/* 1. FONTES E PERSPECTIVA 3D                 */
 /* ========================================== */
 
-/* Força a fonte Plus Jakarta Sans no jogo inteiro */
 body, .font-sans {
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.font-fredoka {
+    font-family: 'Fredoka', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 .perspective-1000 {
@@ -17,7 +20,7 @@ body, .font-sans {
 }
 
 /* ========================================== */
-/* 2. COMPORTAMENTO E GRIDS DA MESA DE JOGO   */
+/* 2. GRIDS PERSONALIZADOS E RESPONSIVOS      */
 /* ========================================== */
 
 .grid-facil {
@@ -42,7 +45,7 @@ body, .font-sans {
 }
 
 /* ========================================== */
-/* 3. AS CARTAS DO JOGO (BLINDAGEM 3D ANTI-VAZAMENTO) */
+/* 3. CARTAS DO JOGO (BLINDAGEM ANTI-VAZAMENTO)*/
 /* ========================================== */
 
 .memory-card {
@@ -63,12 +66,10 @@ body, .font-sans {
     border-radius: 0.75rem;
 }
 
-/* QUANDO A CARTA VIRA: Rotação em 180 graus */
 .memory-card.is-flipped .memory-card-inner {
     transform: rotateY(180deg);
 }
 
-/* SEGURANÇA MÁXIMA 3D: Força invisibilidade da face traseira e controle de Z-Index */
 .memory-card-back,
 .memory-card-front {
     position: absolute;
@@ -78,10 +79,9 @@ body, .font-sans {
     -webkit-backface-visibility: hidden !important;
     backface-visibility: hidden !important;
     border-radius: 0.75rem;
-    overflow: hidden; /* Garante que a imagem não vazará nas pontas arredondadas */
+    overflow: hidden;
 }
 
-/* VERSO DA CARTA (Marca d'água Logo1 cinza, virada para cima inicialmente) */
 .memory-card-back {
     background-color: #ffffff;
     border: 2px solid #e2e8f0;
@@ -90,11 +90,10 @@ body, .font-sans {
     justify-content: center;
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
     transform: rotateY(0deg);
-    z-index: 2; /* Fica por cima quando não está virada */
+    z-index: 2;
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-/* Quando vira, o verso vai para trás no Z-Index */
 .memory-card.is-flipped .memory-card-back {
     z-index: 1;
 }
@@ -106,24 +105,21 @@ body, .font-sans {
     transition: all 0.2s ease-out;
 }
 
-/* FRENTE DA CARTA (Imagem revelada em sangria total / edge-to-edge) */
 .memory-card-front {
     background-color: #ffffff;
-    border: 2px solid #60a5fa; /* blue-400 */
+    border: 2px solid #60a5fa;
     display: flex;
     align-items: center;
     justify-content: center;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    transform: rotateY(180deg); /* Nasce virada para trás */
+    transform: rotateY(180deg);
     z-index: 1;
 }
 
-/* Quando vira, a frente assume a liderança do Z-Index */
 .memory-card.is-flipped .memory-card-front {
     z-index: 2;
 }
 
-/* A Imagem ocupa 100% da carta cortando apenas as pontas (Edge-to-Edge) */
 .memory-card-front img.card-image-full {
     width: 100%;
     height: 100%;
@@ -133,7 +129,7 @@ body, .font-sans {
 }
 
 /* ========================================== */
-/* 4. ANIMAÇÕES DE ACERTO E VOO PARA O MONTE  */
+/* 4. ANIMAÇÕES DE VOO PARA O MONTE (ACERTO)  */
 /* ========================================== */
 
 .memory-card.is-matched .memory-card-front {
@@ -162,35 +158,36 @@ body, .font-sans {
     z-index: 30;
 }
 
-/* Mantém o buraco espacial vazio na grade ao remover a carta */
 .memory-card.is-hidden-space {
     visibility: hidden;
     pointer-events: none;
 }
 
 /* ========================================== */
-/* 5. ANIMAÇÕES ESPECIAIS DO LOBBY 2x2        */
+/* 5. ANIMAÇÃO DE FUSÃO DIAGONAL DO LOBBY EM X*/
 /* ========================================== */
 
-@keyframes mergeLogo1 {
+/* Canto inferior direito (3) pula na diagonal em X para superior esquerdo (0) */
+@keyframes mergeLogo1Diagonal {
     0% { transform: translate(0, 0) scale(1); opacity: 1; }
-    50% { transform: translate(0, -50%) scale(1.1); opacity: 0.8; z-index: 20; }
-    100% { transform: translate(0, -100%) scale(0.5); opacity: 0; }
+    50% { transform: translate(-52%, -52%) scale(1.15); opacity: 0.9; z-index: 20; }
+    100% { transform: translate(-105%, -105%) scale(0.5); opacity: 0; }
 }
 
-@keyframes mergeLogo2 {
+/* Canto inferior esquerdo (2) pula na diagonal em X para superior direito (1) */
+@keyframes mergeLogo2Diagonal {
     0% { transform: translate(0, 0) scale(1); opacity: 1; }
-    50% { transform: translate(0, -50%) scale(1.1); opacity: 0.8; z-index: 20; }
-    100% { transform: translate(0, -100%) scale(0.5); opacity: 0; }
+    50% { transform: translate(52%, -52%) scale(1.15); opacity: 0.9; z-index: 20; }
+    100% { transform: translate(105%, -105%) scale(0.5); opacity: 0; }
 }
 
-.animate-merge-1 {
-    animation: mergeLogo1 0.6s ease-in-out forwards;
+.animate-merge-diagonal-1 {
+    animation: mergeLogo1Diagonal 0.65s cubic-bezier(0.4, 0, 0.2, 1) forwards;
     pointer-events: none;
 }
 
-.animate-merge-2 {
-    animation: mergeLogo2 0.6s ease-in-out forwards;
+.animate-merge-diagonal-2 {
+    animation: mergeLogo2Diagonal 0.65s cubic-bezier(0.4, 0, 0.2, 1) forwards;
     pointer-events: none;
 }
 
