@@ -1,6 +1,6 @@
 /* ==========================================================================
    MEMORY GAME - ENGINE PRINCIPAL (by Mesaque)
-   Arquitetura: Vanilla JS + Tailwind CSS + Tabler Icons
+   Arquitetura: Vanilla JS + Tailwind CSS + Tabler Icons + Confetti
    ========================================================================== */
 
 // --- 1. CONFIGURAÇÕES DOS NÍVEIS E ASSETS ---
@@ -60,6 +60,7 @@ let matchedPairs = 0;
 let timerInterval = null;
 let secondsElapsed = 0;
 let isTimerRunning = false;
+let currentCombo = 0; // Motor de Combo 🔥
 let rankingData = { facil: [], medio: [], dificil: [] };
 let lobbyAnimationTimers = [];
 
@@ -70,19 +71,18 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
 });
 
-// --- 4. ANIMAÇÃO DO LOBBY (MINI-GAMA DIAGONAL 1-2 / 2-1) ---
+// --- 4. ANIMAÇÃO DO LOBBY (MATRIZ DIAGONAL EM "X") ---
 function initLobbyAnimation() {
     const grid = document.getElementById('logo-animation-grid');
     if (!grid) return;
     
-    // Limpa timers anteriores caso o jogador navegue rápido pelo menu
     lobbyAnimationTimers.forEach(t => clearTimeout(t));
     lobbyAnimationTimers = [];
     
     grid.innerHTML = '';
-    grid.className = 'grid grid-cols-2 gap-2 w-48 h-48 mb-8 relative transition-all duration-500';
+    grid.className = 'grid grid-cols-2 gap-2 w-48 h-48 mb-6 relative transition-all duration-500';
 
-    // Matriz Diagonal exata que concordamos: 1, 2 no topo / 2, 1 na base
+    // Matriz Diagonal em X: 1, 2 no topo / 2, 1 na base
     const logos = ['logo1.png', 'logo2.png', 'logo2.png', 'logo1.png'];
     const cardElements = [];
     
@@ -91,11 +91,9 @@ function initLobbyAnimation() {
         card.className = 'memory-card w-full h-full pointer-events-none';
         card.innerHTML = `
             <div class="memory-card-inner">
-                <!-- VERSO: Marca d'água cinza e quase transparente da logo1 -->
                 <div class="memory-card-back">
-                    <img src="logo1.png" alt="watermark" class="w-3/5 h-3/5 object-contain opacity-20 grayscale" onerror="this.outerHTML='<i class=\\'ti ti-brand-github text-slate-300 text-2xl\\'></i>'">
+                    <img src="logo1.png" alt="watermark" class="w-3/5 h-3/5 object-contain opacity-20 grayscale pointer-events-none select-none" onerror="this.outerHTML='<i class=\\'ti ti-brand-github text-slate-300 text-2xl\\'></i>'">
                 </div>
-                <!-- FRENTE: A logo correspondente da matriz -->
                 <div class="memory-card-front p-2">
                     <img src="${logo}" alt="Logo" class="max-w-full max-h-full object-contain" onerror="this.outerHTML='<i class=\\'ti ti-brand-github text-blue-600 text-3xl\\'></i>'">
                 </div>
@@ -105,47 +103,45 @@ function initLobbyAnimation() {
         cardElements.push(card);
     });
 
-    // COREOGRAFIA DO MINI-JOGO DE BOAS-VINDAS:
-    // Passo 1: Vira a carta 0 e a carta 3 (Os pares de Logo 1)
+    // Passo 1: Vira os pares da Logo 1 (Índice 0 superior-esq e 3 inferior-dir)
     lobbyAnimationTimers.push(setTimeout(() => {
         if (!grid.contains(cardElements[0])) return;
         cardElements[0].classList.add('is-flipped');
         cardElements[3].classList.add('is-flipped');
     }, 400));
 
-    // Passo 2: Eles brilham dourado (deu par!) e a carta de baixo se funde na de cima
+    // Passo 2: Carta 3 salta na DIAGONAL EM X para se unir à Carta 0
     lobbyAnimationTimers.push(setTimeout(() => {
         if (!grid.contains(cardElements[0])) return;
         cardElements[0].classList.add('is-matched');
-        cardElements[3].classList.add('is-matched', 'animate-merge-1');
+        cardElements[3].classList.add('is-matched', 'animate-merge-diagonal-1');
     }, 1100));
 
-    // Passo 3: Vira a carta 1 e a carta 2 (Os pares de Logo 2)
+    // Passo 3: Vira os pares da Logo 2 (Índice 1 superior-dir e 2 inferior-esq)
     lobbyAnimationTimers.push(setTimeout(() => {
         if (!grid.contains(cardElements[1])) return;
         cardElements[1].classList.add('is-flipped');
         cardElements[2].classList.add('is-flipped');
     }, 1700));
 
-    // Passo 4: Brilham dourado e a Logo 2 de baixo se funde na Logo 2 de cima
+    // Passo 4: Carta 2 salta na DIAGONAL EM X para se unir à Carta 1
     lobbyAnimationTimers.push(setTimeout(() => {
         if (!grid.contains(cardElements[1])) return;
         cardElements[1].classList.add('is-matched');
-        cardElements[2].classList.add('is-matched', 'animate-merge-2');
+        cardElements[2].classList.add('is-matched', 'animate-merge-diagonal-2');
     }, 2400));
 
-    // Passo 5: As duas cartas de baixo desaparecem do DOM, deixando [ Logo 1 ] [ Logo 2 ] perfeitas no topo!
+    // Passo 5: Restam apenas [ Logo 1 ] [ Logo 2 ] perfeitas lado a lado!
     lobbyAnimationTimers.push(setTimeout(() => {
         if (!grid.contains(cardElements[2])) return;
         cardElements[2].style.visibility = 'hidden';
         cardElements[3].style.visibility = 'hidden';
-        // Encolhe a grade suavemente para abraçar as duas logos que restaram lado a lado
         grid.classList.remove('h-48');
         grid.classList.add('h-24');
-    }, 3000));
+    }, 3050));
 }
 
-// --- 5. GESTÃO DE EVENTOS (CLIQUE NOS BOTÕES) ---
+// --- 5. GESTÃO DE EVENTOS ---
 function setupEventListeners() {
     document.getElementById('btn-show-difficulty')?.addEventListener('click', () => switchScreen('difficulty-screen'));
     document.getElementById('btn-back-lobby')?.addEventListener('click', () => switchScreen('lobby-screen'));
@@ -187,9 +183,10 @@ function setupEventListeners() {
     document.getElementById('btn-save-score')?.addEventListener('click', handleSaveScore);
 }
 
-// --- 6. CONTROLE DE TELAS ---
+// --- 6. CONTROLE DE TELAS (COM ISOLAMENTO DO RODAPÉ) ---
 function switchScreen(screenId) {
     const screens = ['lobby-screen', 'difficulty-screen', 'game-screen'];
+    
     screens.forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
@@ -200,12 +197,24 @@ function switchScreen(screenId) {
             el.classList.add('hidden', 'opacity-0');
         }
     });
+
+    // REGRA DO RODAPÉ: Só aparece na tela do Lobby!
+    const footer = document.getElementById('footer');
+    if (footer) {
+        if (screenId === 'lobby-screen') {
+            footer.classList.remove('opacity-0', 'pointer-events-none');
+            footer.style.display = 'flex';
+        } else {
+            footer.classList.add('opacity-0', 'pointer-events-none');
+            setTimeout(() => { if (screenId !== 'lobby-screen') footer.style.display = 'none'; }, 300);
+        }
+    }
 }
 
 function returnToMenu() {
     stopTimer();
     switchScreen('lobby-screen');
-    initLobbyAnimation(); // Reinicia o espetáculo da fusão do Lobby
+    initLobbyAnimation();
 }
 
 // --- 7. INICIALIZAÇÃO DE UMA NOVA PARTIDA ---
@@ -216,7 +225,7 @@ function startNewGame(level) {
     const badge = document.getElementById('game-level-badge');
     if (badge) {
         badge.textContent = level.toUpperCase();
-        badge.className = `uppercase text-xs font-extrabold tracking-wider px-3 py-1 rounded-full border ${
+        badge.className = `uppercase text-[10px] sm:text-xs font-extrabold tracking-wider px-2.5 py-1 rounded-full border ${
             level === 'facil' ? 'bg-green-100 text-green-700 border-green-200' :
             level === 'medio' ? 'bg-blue-100 text-blue-700 border-blue-200' :
             'bg-red-100 text-red-700 border-red-200'
@@ -231,7 +240,11 @@ function startNewGame(level) {
         deckContainer.classList.add('opacity-0', 'translate-y-10');
     }
 
+    // Reseta cronômetro e motor de COMBO
     stopTimer();
+    currentCombo = 0;
+    updateComboUI();
+    
     secondsElapsed = config.timeLimit ? config.timeLimit : 0;
     updateTimerDisplay();
     matchedPairs = 0;
@@ -244,7 +257,7 @@ function startNewGame(level) {
     switchScreen('game-screen');
 }
 
-// --- 8. GERADOR DE TABULEIRO E EMBARALHAMENTO ---
+// --- 8. GERADOR DE TABULEIRO ---
 function setupBoardGrid(config) {
     const board = document.getElementById('board-grid');
     if (!board) return;
@@ -254,7 +267,6 @@ function setupBoardGrid(config) {
 
     const pairsArray = [...config.images, ...config.images];
     
-    // Algoritmo de Fisher-Yates
     for (let i = pairsArray.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [pairsArray[i], pairsArray[j]] = [pairsArray[j], pairsArray[i]];
@@ -268,11 +280,9 @@ function setupBoardGrid(config) {
 
         card.innerHTML = `
             <div class="memory-card-inner">
-                <!-- VERSO: A logo1 em cinza marca d'água de 20% opacidade -->
                 <div class="memory-card-back">
                     <img src="logo1.png" alt="watermark" class="w-3/5 h-3/5 object-contain opacity-20 grayscale pointer-events-none select-none" onerror="this.outerHTML='<i class=\\'ti ti-brand-github text-slate-300 text-2xl\\'></i>'">
                 </div>
-                <!-- FRENTE: A imagem ocupando 100% (edge-to-edge / sangria total) -->
                 <div class="memory-card-front">
                     <img src="assets/${imgName}" alt="Carta" class="card-image-full" onerror="this.outerHTML='<i class=\\'ti ti-photo text-blue-400 text-2xl\\'></i>'">
                 </div>
@@ -327,13 +337,52 @@ function checkForMatch() {
     const isMatch = firstCard.dataset.image === secondCard.dataset.image;
 
     if (isMatch) {
+        handleComboSuccess();
         disableMatchedCards();
     } else {
+        handleComboBreak();
         unflipCards();
     }
 }
 
-// --- 10. CARTAS IGUAIS: VOO PARA O MONTE ---
+// --- 10. MOTOR DE COMBO 🔥 ---
+function handleComboSuccess() {
+    currentCombo++;
+    updateComboUI();
+
+    // Se estiver no Modo Difícil, COMBO ganha +3 SEGUNDOS de bônus no relógio!
+    if (LEVELS_CONFIG[currentLevel].timeLimit && currentCombo >= 2) {
+        secondsElapsed += 3;
+        updateTimerDisplay();
+        
+        // Efeito visual no relógio mostrando que ganhou tempo
+        const display = document.getElementById('timer-display');
+        display?.classList.add('bg-green-100', 'text-green-600', 'border-green-400');
+        setTimeout(() => display?.classList.remove('bg-green-100', 'text-green-600', 'border-green-400'), 600);
+    }
+}
+
+function handleComboBreak() {
+    currentCombo = 0;
+    updateComboUI();
+}
+
+function updateComboUI() {
+    const badge = document.getElementById('combo-badge');
+    const text = document.getElementById('combo-text');
+    if (!badge || !text) return;
+
+    if (currentCombo >= 2) {
+        text.textContent = `${currentCombo}x COMBO!`;
+        badge.classList.remove('hidden');
+        badge.classList.add('flex');
+    } else {
+        badge.classList.add('hidden');
+        badge.classList.remove('flex');
+    }
+}
+
+// --- 11. CARTAS IGUAIS: VOO PARA O MONTE ---
 function disableMatchedCards() {
     lockBoard = true;
     matchedPairs++;
@@ -368,7 +417,7 @@ function disableMatchedCards() {
     }, 350);
 }
 
-// --- 11. CARTAS DIFERENTES: ESCONDE NOVAMENTE ---
+// --- 12. CARTAS DIFERENTES ---
 function unflipCards() {
     lockBoard = true;
     setTimeout(() => {
@@ -383,7 +432,7 @@ function resetBoard() {
     [firstCard, secondCard] = [null, null];
 }
 
-// --- 12. GESTÃO DO CRONÔMETRO ---
+// --- 13. GESTÃO DO CRONÔMETRO ---
 function startTimer() {
     stopTimer();
     isTimerRunning = true;
@@ -428,7 +477,7 @@ function updateTimerDisplay() {
     }
 }
 
-// --- 13. FIM DE JOGO ---
+// --- 14. FIM DE JOGO COM CHUVA DE CONFETES 🎉 ---
 function handleGameWin() {
     stopTimer();
     const config = LEVELS_CONFIG[currentLevel];
@@ -437,6 +486,15 @@ function handleGameWin() {
     const mins = String(Math.floor(finalTimeSeconds / 60)).padStart(2, '0');
     const secs = String(finalTimeSeconds % 60).padStart(2, '0');
     const formattedTime = `${mins}:${secs}`;
+
+    // DISPARA A CHUVA DE CONFETES COM A BIBLIOTECA CDN
+    if (typeof confetti === 'function') {
+        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+        setTimeout(() => {
+            confetti({ particleCount: 50, angle: 60, spread: 55, origin: { x: 0 } });
+            confetti({ particleCount: 50, angle: 120, spread: 55, origin: { x: 1 } });
+        }, 400);
+    }
 
     document.getElementById('endgame-icon').className = 'ti ti-trophy text-5xl text-amber-500';
     document.getElementById('endgame-icon-container').className = 'w-24 h-24 rounded-full mx-auto mb-4 flex items-center justify-center bg-amber-100 shadow-inner';
@@ -471,7 +529,7 @@ function handleGameOver() {
     openModal('endgame-modal');
 }
 
-// --- 14. RANKING GLOBAL E LOCALSTORAGE ---
+// --- 15. RANKING GLOBAL E LOCALSTORAGE ---
 async function loadRankingData() {
     try {
         const response = await fetch('ranking.json');
